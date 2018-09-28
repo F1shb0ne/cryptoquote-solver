@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.1)
 project(cryptoquote)
 
 set(CMAKE_CXX_STANDARD 11)
@@ -9,7 +9,6 @@ set(SOURCE_FILES
         main.cpp
         dictionary.cpp
         quote.cpp
-        crypto/crypto.cpp
         crypto/letterset.cpp
         crypto/solver.cpp
 )
