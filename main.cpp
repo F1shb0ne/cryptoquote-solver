@@ -72,7 +72,6 @@ int main(int argc, char** argv) {
 #else
     signal(SIGINT, BreakHandler);
     signal(SIGTERM, BreakHandler);
-    signal(SIGBREAK, BreakHandler);
 #endif
     solutionsPerThread = std::stoi(argv[3]);
     Dictionary::Init(argv[1]);
