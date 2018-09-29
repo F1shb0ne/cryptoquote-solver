@@ -1,10 +1,26 @@
 #include <iostream>
+#include <sstream>
 #include <vector>
+#include <thread>
+#include <mutex>
 
 #include "../dictionary.h"
 #include "solver.h"
 
 using namespace std;
+
+mutex m;
+bool Solver::Enabled = true;
+
+bool Solver::isEnabled() {
+    return Enabled;
+}
+
+void Solver::Disable() {
+    m.lock();
+    Enabled = false;
+    m.unlock();
+}
 
 double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
 
@@ -29,14 +45,22 @@ double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
             currentSolution.clear();
             solvedWordIndex = 0;
         }
+        if (!Enabled) {
+            return 0;
+            break;
+        }
     }
 
     // Solution found
-    cout << threadid << ": ";
+    stringstream ss;
+    ss << threadid;
+    ss << ": ";
     for (string word : currentSolution) {
-        cout << word << " ";
+        ss << word;
+        ss << " ";
     }
-    cout << endl;
+    ss << endl;
+    cout << ss.str();
 
     return 0;
 }
