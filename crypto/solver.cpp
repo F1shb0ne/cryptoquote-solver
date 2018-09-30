@@ -23,7 +23,6 @@ void Solver::Disable() {
 }
 
 double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
-
     int solvedWordIndex = 0;
     int totalWords = (int)quote.WordList.size();
     int largestWordsSolved = 0;
@@ -38,7 +37,6 @@ double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
         } else {
             if (solvedWordIndex > largestWordsSolved) {
                 largestWordsSolved = solvedWordIndex;
-                //cout << threadid << ": << " << "Largest words solved: " << largestWordsSolved << endl;
             }
 
             letterSet.Shuffle();
