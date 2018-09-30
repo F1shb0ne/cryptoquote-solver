@@ -1,6 +1,7 @@
 #include <iostream>
 #include <unistd.h>
 #include <pthread.h>
+#include <csignal>
 
 #include "dictionary.h"
 #include "quote.h"
@@ -8,24 +9,21 @@
 #include "crypto/solver.h"
 
 using namespace std;
-typedef struct SolverArgs {
+typedef struct {
     Quote* quote;
     LetterSet* letterSet;
     int threadId;
     int numSolutions;
     string name;
-};
-
+} SolverArgs;
 
 void* SolverThread(void* args) {
-
-    int numSolutions = ((SolverArgs*)args)->numSolutions;
     Quote* quote = ((SolverArgs*)args)->quote;
     LetterSet* letterSet = ((SolverArgs*)args)->letterSet;
     string name = ((SolverArgs*)args)->name;
     int threadId = ((SolverArgs*)args)->threadId;
     
-    for (int i = 0; i < numSolutions; ++i) {
+    while (Solver::isEnabled()) {
         Solver::Solve(*quote, *letterSet, name, threadId);
         letterSet->Shuffle();
     }
@@ -45,7 +43,7 @@ int main(int argc, char** argv) {
     }
 
     // Get number of cores
-    int numCores = sysconf(_SC_NPROCESSORS_ONLN);
+    int numCores = (int)sysconf(_SC_NPROCESSORS_ONLN);
     cerr << "Detected " << numCores << " cores" << endl;
 
     // Init dictionary from first cli argument
@@ -56,7 +54,12 @@ int main(int argc, char** argv) {
 
     cerr << endl << "Solving for:" << endl;
     quote.DisplayQuote();
-    
+
+    Solver::Init();
+
+    // Register break handler
+    signal(SIGINT, BreakHandler);
+    signal(SIGTERM, BreakHandler);
 
     // Create a thread group; one per core
     pthread_t* ThreadGroup = new pthread_t[numCores];
@@ -71,7 +74,7 @@ int main(int argc, char** argv) {
         solverArgs[i].letterSet = &LetterSets[i];
         solverArgs[i].threadId = i;
         solverArgs[i].numSolutions = 3;
-        solverArgs[i].id = argv[3];
+        solverArgs[i].name = argv[3];
         int resp = pthread_create(&ThreadGroup[i], NULL, SolverThread, &solverArgs[i]);
         if (resp != 0) {
             cerr << "pthread_create() failed with " << resp << endl;
@@ -81,8 +84,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    void* result;
     // Wait for threads to finish
+    void* result;
     for (int i = 0; i < numCores; ++i) {
         int resp = pthread_join(ThreadGroup[i], &result);
         if (resp != 0) {
@@ -93,6 +96,7 @@ int main(int argc, char** argv) {
     delete[] ThreadGroup;
     delete[] LetterSets;
 
+    Solver::Destroy();
     pthread_exit(NULL);
     return 0;
 }
