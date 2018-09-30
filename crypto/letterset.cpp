@@ -1,21 +1,23 @@
 #include <iostream>
+#include <algorithm>
+#include <vector>
 #include <sstream>
 #include <ctime>
+#include <cstdlib>
+
 #include "letterset.h"
 
 using namespace std;
 
-LetterSet::LetterSet() {
-    RandomEngine.seed((unsigned long)time(NULL));
 
+LetterSet::LetterSet() {
     for (int i = 0; i < 26; ++i) {
         Letters.push_back('a' + (char)i);
     }
-    Shuffle();
 }
 
 void LetterSet::Shuffle() {
-    shuffle(begin(Letters), end(Letters), RandomEngine);
+    random_shuffle(Letters.begin(), Letters.end());
 }
 
 void LetterSet::DisplaySet() {
@@ -28,12 +30,15 @@ void LetterSet::DisplaySet() {
 string LetterSet::Map(string word) {
     stringstream ss;
 
-    for (char c : word) {
+    for (int i = 0; i < word.length(); ++i) {
+        char c = word[i];
         ss << Letters[c - 'a'];
     }
     return ss.str();
 }
 
 void LetterSet::SetSeed(unsigned long seed) {
-    RandomEngine.seed(seed);
+    Seed = seed;
+    srand(Seed);
 }
+

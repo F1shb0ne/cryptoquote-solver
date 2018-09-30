@@ -8,10 +8,9 @@
 using namespace std;
 
 class Solver {
-private:
-    static bool Enabled;
+
 public:
-    static double Solve(int threadid, Quote &, LetterSet &);
-    static bool isEnabled();
+    static double Solve(Quote &quote, LetterSet &letterSet, string name, int threadId);
     static void Disable();
 };
+

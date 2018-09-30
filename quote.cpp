@@ -5,7 +5,7 @@
 Quote::Quote(string FileName) {
     stringstream ss;
 
-    fstream infile(FileName, fstream::in);
+    fstream infile(FileName.c_str(), std::fstream::in);
 
     while (infile.good()) {
         char c = (char)infile.get();
@@ -35,10 +35,11 @@ Quote::Quote(string FileName) {
 
 void Quote::DisplayQuote() {
 
-    for (string word : WordList) {
-        cout << word << " ";
+    for (vector<string>::const_iterator it = WordList.begin(); it != WordList.end(); ++it) {
+    //for (string word : WordList) {
+        cerr << *it << " ";
     }
-    cout << endl;
+    cerr << endl;
 
 }
 

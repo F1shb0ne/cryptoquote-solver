@@ -2,18 +2,19 @@
 
 #include <iostream>
 #include <vector>
-#include <algorithm>
-#include <random>
+#include <cstdlib>
 
 using namespace std;
 
 class LetterSet {
-    default_random_engine RandomEngine = std::default_random_engine {};
+private:
+    unsigned long Seed;
 
 public:
     vector<char> Letters;
 
     LetterSet();
+    LetterSet(unsigned long seed);
     void Shuffle();
     void DisplaySet();
 

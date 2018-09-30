@@ -8,17 +8,17 @@
 using namespace std;
 
 unsigned long Dictionary::TotalWordCount = 0;
-map<unsigned long, vector<string>> Dictionary::WordList;
+map<unsigned long, vector<string> > Dictionary::WordList;
 
 void Dictionary::Init(string wordlist) {
     stringstream ss;
-    ifstream wordListFile(wordlist);
+    ifstream wordListFile(wordlist.c_str(), std::ifstream::in);
     string word;
     unsigned long wordLength;
     unsigned long rawWordCount = 0;
-    map<unsigned long, set<string>> WordSet;
+    map<unsigned long, set<string> > WordSet;
 
-    cout << "Processing " << wordlist << "... ";
+    cerr << "Processing " << wordlist << "... ";
     while(getline(wordListFile, word)) {
         ++rawWordCount;
         string newWord = StripWord(word);
@@ -33,27 +33,28 @@ void Dictionary::Init(string wordlist) {
         }
     }
 
-    cout << rawWordCount << " entries." << endl;
+    cerr << rawWordCount << " entries." << endl;
 
     // Populate actual word list (get out of set collection to faster vector)
-    cout << "Building dictionary... ";
-    for (map<unsigned long, set<string>>::const_iterator it = WordSet.begin(); it != WordSet.end(); ++it) {
+    cerr << "Building dictionary... ";
+    for (map<unsigned long, set<string> >::const_iterator it = WordSet.begin(); it != WordSet.end(); ++it) {
         unsigned long numWords = it->second.size();
         TotalWordCount += numWords;
 
         WordList[it->first] = vector<string>();
-        for (string entry : it->second) {
-            WordList[it->first].push_back(entry);
+        for (set<string>::const_iterator it2 = it->second.begin(); it2 != it->second.end(); ++it2) {
+            WordList[it->first].push_back(*it2);
         }
     }
-    cout << "Done." << endl << "Dictionary contains " << TotalWordCount << " unique words" << endl;
+    cerr << "Done." << endl << "Dictionary contains " << TotalWordCount << " unique words" << endl;
 }
 
 string Dictionary::StripWord(string word) {
 
     stringstream ss;
 
-    for (char c : word) {
+    for (int i = 0; i < word.length(); ++i) {
+        char c = word[i];
         c |= 32; // ensure lowercase
         if (c >= 'a' && c <= 'z') {
             ss << c;
@@ -70,19 +71,20 @@ void Dictionary::DisplayWordsOfSize(int size) {
 
     int cols = 0;
     cout << endl;
-    for (string word : WordList[(unsigned long)size]) {
+    
+    for (vector<string>::const_iterator it = WordList[(unsigned long)size].begin(); it != WordList[(unsigned long)size].end(); ++it) {
         if (cols >= 230) {
             cout << endl;
             cols = 0;
         }
-        cout << word << " ";
+        cout << *it << " ";
         cols += size + 1;
     }
     cout << endl;
 }
 
 void Dictionary::DisplayWordSizeHistogram() {
-    for (map<unsigned long, vector<string>>::const_iterator it = WordList.begin(); it != WordList.end(); ++it) {
+    for (map<unsigned long, vector<string> >::const_iterator it = WordList.begin(); it != WordList.end(); ++it) {
         unsigned long numWords = it->second.size();
         TotalWordCount += numWords;
         cout << "Length " << it->first << ": " << numWords << " words." << endl;
@@ -94,3 +96,4 @@ bool Dictionary::ContainsWord(string word) {
     vector<string>& dict = WordList[wordsize];
     return find(dict.begin(), dict.end(), word) != dict.end();
 }
+

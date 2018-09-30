@@ -10,7 +10,7 @@ using namespace std;
 class Dictionary {
 private:
     static unsigned long TotalWordCount;
-    static map<unsigned long, vector<string>> WordList;
+    static map<unsigned long, vector<string> > WordList;
 public:
     static void Init(string wordlist);
     static string StripWord(string word);

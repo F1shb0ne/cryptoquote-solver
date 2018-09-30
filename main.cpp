@@ -1,100 +1,99 @@
 #include <iostream>
-#include <string>
-#include <thread>
-
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-#include <windows.h>
-#else
-#include <csignal>
-#endif
+#include <unistd.h>
+#include <pthread.h>
 
 #include "dictionary.h"
-#include "crypto/letterset.h"
 #include "quote.h"
+#include "crypto/letterset.h"
 #include "crypto/solver.h"
 
 using namespace std;
+typedef struct SolverArgs {
+    Quote* quote;
+    LetterSet* letterSet;
+    int threadId;
+    int numSolutions;
+    string name;
+};
 
-int numCores = thread::hardware_concurrency();
-default_random_engine RandomEngine = std::default_random_engine{};
-int solutionsPerThread = 0;
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-BOOL CtrlHandler(DWORD fdwCtrlType) {
-    switch (fdwCtrlType) {
-    case CTRL_C_EVENT:
-    case CTRL_BREAK_EVENT:
-        cout << "Caught break: Aborting..." << endl;
-        Solver::Disable();
-        return TRUE;
-        break;
-    default:
-        break;
-    }
-    return FALSE;
-}
-#else
-void BreakHandler(int s) {
-    cout << "Caught SIGINT: Aborting..." << endl;
-    Solver::Disable();
-}
-#endif
+void* SolverThread(void* args) {
 
-void SolverThread(int threadid, Quote* quote, LetterSet* letterSet) {
-
-    int increment = 0;
-    int iter = 1;
-
-    if (solutionsPerThread > 0) {
-        increment = 1;
-        iter = solutionsPerThread;
-    }
-    for (int i = 0; i < iter; i += increment) {
-        Solver::Solve(threadid, *quote, *letterSet);
-        if (!Solver::isEnabled()) break;
+    int numSolutions = ((SolverArgs*)args)->numSolutions;
+    Quote* quote = ((SolverArgs*)args)->quote;
+    LetterSet* letterSet = ((SolverArgs*)args)->letterSet;
+    string name = ((SolverArgs*)args)->name;
+    int threadId = ((SolverArgs*)args)->threadId;
+    
+    for (int i = 0; i < numSolutions; ++i) {
+        Solver::Solve(*quote, *letterSet, name, threadId);
         letterSet->Shuffle();
     }
+    pthread_exit(NULL);
+}
+
+void BreakHandler(int signal) {
+    cerr << "Caught SIGINT: Aborting..." << endl;
+    Solver::Disable();
 }
 
 int main(int argc, char** argv) {
-    RandomEngine.seed((unsigned long)time(NULL));
-    cout << numCores << " cores detected." << endl;
 
     if (argc != 4) {
-        cout << "Usage:" << endl << argv[0] << " dictionary-file puzzle-file #tries-per-thread" << endl;
+        cerr << "Usage:" << endl << argv[0] << " dictionary-file puzzle-file id" << endl;
         return -1;
     }
 
-#if defined(WIN32) || defined(_WIN32) || defined(__WIN32)
-    if (!SetConsoleCtrlHandler((PHANDLER_ROUTINE)CtrlHandler, TRUE)) {
-        cout << "Warning: Unable to register break handler" << endl;
-    }
-#else
-    signal(SIGINT, BreakHandler);
-    signal(SIGTERM, BreakHandler);
-#endif
-    solutionsPerThread = std::stoi(argv[3]);
+    // Get number of cores
+    int numCores = sysconf(_SC_NPROCESSORS_ONLN);
+    cerr << "Detected " << numCores << " cores" << endl;
+
+    // Init dictionary from first cli argument
     Dictionary::Init(argv[1]);
+
+    // Load cryptoquote from second argument
     Quote quote(argv[2]);
-    cout << endl << "Solving for:" << endl;
+
+    cerr << endl << "Solving for:" << endl;
     quote.DisplayQuote();
+    
 
-    LetterSet* letterSets = new LetterSet[numCores];
-    thread* ThreadGroup = new thread[numCores];
+    // Create a thread group; one per core
+    pthread_t* ThreadGroup = new pthread_t[numCores];
 
-    // spin off a thread per core
+    // Create letter sets for each thread
+    LetterSet* LetterSets = new LetterSet[numCores];    
+    
+    // Prepare argument struct and start each thread
+    SolverArgs* solverArgs = new SolverArgs[numCores];
     for (int i = 0; i < numCores; ++i) {
-        letterSets[i].SetSeed((unsigned long)rand());
-        ThreadGroup[i] = thread(SolverThread, i, &quote, &letterSets[i]);
+        solverArgs[i].quote = &quote;
+        solverArgs[i].letterSet = &LetterSets[i];
+        solverArgs[i].threadId = i;
+        solverArgs[i].numSolutions = 3;
+        solverArgs[i].id = argv[3];
+        int resp = pthread_create(&ThreadGroup[i], NULL, SolverThread, &solverArgs[i]);
+        if (resp != 0) {
+            cerr << "pthread_create() failed with " << resp << endl;
+            delete[] ThreadGroup;
+            delete[] LetterSets;
+            return 1;
+        }
     }
 
-    // join
+    void* result;
+    // Wait for threads to finish
     for (int i = 0; i < numCores; ++i) {
-        ThreadGroup[i].join();
+        int resp = pthread_join(ThreadGroup[i], &result);
+        if (resp != 0) {
+            cerr << "pthread_join() failed with " << resp << endl;
+        }
     }
 
-    delete[] letterSets;
     delete[] ThreadGroup;
+    delete[] LetterSets;
 
+    pthread_exit(NULL);
     return 0;
 }
+
