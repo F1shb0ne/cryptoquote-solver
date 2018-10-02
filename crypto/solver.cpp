@@ -22,7 +22,7 @@ void Solver::Disable() {
     m.unlock();
 }
 
-double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
+double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet, string name) {
     int solvedWordIndex = 0;
     int totalWords = (int)quote.WordList.size();
     int largestWordsSolved = 0;
@@ -51,8 +51,7 @@ double Solver::Solve(int threadid, Quote &quote, LetterSet &letterSet) {
 
     // Solution found
     stringstream ss;
-    ss << threadid;
-    ss << ": ";
+	cout << "(" << name << "-" << threadid << "): ";
     for (string word : currentSolution) {
         ss << word;
         ss << " ";

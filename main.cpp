@@ -40,20 +40,11 @@ void BreakHandler(int s) {
 }
 #endif
 
-void SolverThread(int threadid, Quote* quote, LetterSet* letterSet) {
-
-    int increment = 0;
-    int iter = 1;
-
-    if (solutionsPerThread > 0) {
-        increment = 1;
-        iter = solutionsPerThread;
-    }
-    for (int i = 0; i < iter; i += increment) {
-        Solver::Solve(threadid, *quote, *letterSet);
-        if (!Solver::isEnabled()) break;
-        letterSet->Shuffle();
-    }
+void SolverThread(int threadid, Quote* quote, LetterSet* letterSet, string name) {
+	while (Solver::isEnabled()) {
+		Solver::Solve(threadid, *quote, *letterSet, name);
+		letterSet->Shuffle();
+	}
 }
 
 int main(int argc, char** argv) {
@@ -61,7 +52,7 @@ int main(int argc, char** argv) {
     cout << numCores << " cores detected." << endl;
 
     if (argc != 4) {
-        cout << "Usage:" << endl << argv[0] << " dictionary-file puzzle-file #tries-per-thread" << endl;
+        cout << "Usage:" << endl << argv[0] << " dictionary-file puzzle-file id" << endl;
         return -1;
     }
 
@@ -73,7 +64,6 @@ int main(int argc, char** argv) {
     signal(SIGINT, BreakHandler);
     signal(SIGTERM, BreakHandler);
 #endif
-    solutionsPerThread = std::stoi(argv[3]);
     Dictionary::Init(argv[1]);
     Quote quote(argv[2]);
     cout << endl << "Solving for:" << endl;
@@ -85,7 +75,7 @@ int main(int argc, char** argv) {
     // spin off a thread per core
     for (int i = 0; i < numCores; ++i) {
         letterSets[i].SetSeed((unsigned long)rand());
-        ThreadGroup[i] = thread(SolverThread, i, &quote, &letterSets[i]);
+        ThreadGroup[i] = thread(SolverThread, i, &quote, &letterSets[i], argv[3]);
     }
 
     // join

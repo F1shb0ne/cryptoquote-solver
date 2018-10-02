@@ -11,7 +11,7 @@ class Solver {
 private:
     static bool Enabled;
 public:
-    static double Solve(int threadid, Quote &, LetterSet &);
+    static double Solve(int threadid, Quote &, LetterSet &, string);
     static bool isEnabled();
     static void Disable();
 };
